@@ -26,3 +26,9 @@ if __name__ == "__main__":
 		start_servers(db_port, server_port, password, leader)
 		time.sleep(2)
 		send_msg(int(server_port), "connect to:" + json.dumps(list(zip(server_ports[:i] + server_ports[i+1:], leaders[:i] + leaders[i+1:]))))
+
+	input = input()
+	while input != "exit":
+		send_msg(server_ports[0], input)
+
+	exit()

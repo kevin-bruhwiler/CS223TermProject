@@ -9,11 +9,10 @@ print_lock = threading.Lock()
 
 neighbors = []
 
-
 def connect_to_server(db_port, password):
 	conn = psycopg2.connect(database="postgres", user="postgres", password=password, host="127.0.0.1", port="5432")
 	print("Database Connected....")
-
+	return conn.cursor()
 
 def listen(c):
 	while True:
@@ -28,6 +27,14 @@ def listen(c):
 		if data.startswith("connect to:"):
 			neighbors = json.loads(data.split(":")[-1])
 			print(neighbors)
+
+		elif leader is True:
+			for neighbor in neighbors:
+				send_msg(neighbor, data)
+
+		else:
+			cur.execute(data)
+
  
 	c.close()
 	
@@ -40,7 +47,7 @@ def send_msg(port, msg):
 
 
 if __name__ == "__main__":
-	connect_to_server(sys.argv[1], sys.argv[3])
+	cur = connect_to_server(sys.argv[1], sys.argv[3])
 	
 	leader = sys.argv[4] == "L"
 	print("Is leader:", leader)
