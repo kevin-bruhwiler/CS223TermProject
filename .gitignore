@@ -1,0 +1,5 @@
+# Default ignored files
+/root/
+    .gitignore
+    /idea/
+	*
