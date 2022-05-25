@@ -9,6 +9,8 @@ print_lock = threading.Lock()
 
 neighbors = []
 
+cur = None
+
 def connect_to_server(db_port, password):
 	conn = psycopg2.connect(database="postgres", user="postgres", password=password, host="127.0.0.1", port="5432")
 	print("Database Connected....")
@@ -31,11 +33,11 @@ def listen(c):
 		elif leader is True:
 			for neighbor in neighbors:
 				send_msg(neighbor, data)
+			cur.execute(data)
 
 		else:
 			cur.execute(data)
 
- 
 	c.close()
 	
 	

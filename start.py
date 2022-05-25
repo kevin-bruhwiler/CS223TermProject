@@ -30,5 +30,6 @@ if __name__ == "__main__":
 	input = input()
 	while input != "exit":
 		send_msg(server_ports[0], input)
+		input = input()
 
 	exit()
