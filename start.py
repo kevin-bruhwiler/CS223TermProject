@@ -4,7 +4,7 @@ import time
 import socket
 import json
 
-
+write_buffer = []
 
 def start_servers(db_port, server_port, password, leader):
 	subprocess.Popen(["python", "run_instance.py", db_port, server_port, password, leader])
@@ -29,7 +29,12 @@ if __name__ == "__main__":
 
 	input = input()
 	while input != "exit":
-		send_msg(server_ports[0], input)
+		if input.startswith("read"):
+			send_msg(server_ports[0], input)
+		elif input.startswith("write"):
+			write_buffer.append(input)
+		elif input.startswith("commit"):
+			send_msg(server_ports[0], write_buffer)
 		input = input()
 
 	exit()
