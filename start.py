@@ -28,12 +28,17 @@ if __name__ == "__main__":
 		send_msg(int(server_port), "connect to:" + json.dumps(list(zip(server_ports[:i] + server_ports[i+1:], leaders[:i] + leaders[i+1:]))))
 
 	input = input()
+	#example input: "SELECT vendor_id, vendor_name FROM vendors ORDER BY vendor_name;1"
+	#transaction number after SQL statement
 	while input != "exit":
-		if input.startswith("read"):
-			send_msg(server_ports[0], input)
-		elif input.startswith("write"):
-			write_buffer.append(input)
-		elif input.startswith("commit"):
+		#execute reads immediately
+		if input.startswith("SELECT"):
+			send_msg(server_ports[0], input[:-2])
+		#buffer writes
+		elif input.startswith("UPDATE") or input.startswith("INSERT"):
+			write_buffer.append(input[:-2])
+		#commit when commit message comes
+		elif input.startswith("COMMIT"):
 			send_msg(server_ports[0], write_buffer)
 		input = input()
 
