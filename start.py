@@ -4,7 +4,7 @@ import time
 import socket
 import json
 
-write_buffer = []
+write_buffer = {}
 
 def start_servers(db_port, server_port, password, leader):
 	subprocess.Popen(["python", "run_instance.py", db_port, server_port, password, leader])
@@ -27,19 +27,28 @@ if __name__ == "__main__":
 		time.sleep(2)
 		send_msg(int(server_port), "connect to:" + json.dumps(list(zip(server_ports[:i] + server_ports[i+1:], leaders[:i] + leaders[i+1:]))))
 
-	input = input()
-	#example input: "SELECT vendor_id, vendor_name FROM vendors ORDER BY vendor_name;1"
+	uinput = input()
+	#example input: "SELECT vendor_id, vendor_name FROM vendors ORDER BY vendor_name;048"
 	#transaction number after SQL statement
-	while input != "exit":
+	while uinput != "exit":
 		#execute reads immediately
-		if input.startswith("SELECT"):
-			send_msg(server_ports[0], input[:-2])
+		if uinput.startswith("SELECT"):
+			send_msg(server_ports[0], uinput[:-4])
 		#buffer writes
-		elif input.startswith("UPDATE") or input.startswith("INSERT"):
-			write_buffer.append(input[:-2])
+		elif uinput.startswith("UPDATE") or uinput.startswith("INSERT"):
+			transaction_id = uinput[-3:]
+			if transaction_id in write_buffer:
+				write_buffer[transaction_id].append(uinput[:-4])
+			else:
+				write_buffer[transaction_id] = list([uinput[:-4]])
 		#commit when commit message comes
-		elif input.startswith("COMMIT"):
-			send_msg(server_ports[0], write_buffer)
-		input = input()
+		elif uinput.startswith("COMMIT"):
+			transaction_id = uinput[-3:]
+			statements = write_buffer[transaction_id]
+			for statement in statements:
+				send_msg(server_ports[0], statement)
+			send_msg(server_ports[0], "COMMIT")
+			
+		uinput = input()
 
 	exit()

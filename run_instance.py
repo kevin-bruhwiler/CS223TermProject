@@ -1,5 +1,5 @@
 import psycopg2
-import sys 
+import sys
 import socket
 from _thread import *
 import threading
@@ -10,6 +10,8 @@ print_lock = threading.Lock()
 neighbors = []
 
 cur = None
+
+conn = None
 
 def connect_to_server(db_port, password):
 	conn = psycopg2.connect(database="postgres", user="postgres", password=password, host="127.0.0.1", port="5432")
@@ -34,6 +36,9 @@ def listen(c):
 			for neighbor in neighbors:
 				send_msg(neighbor, data)
 			cur.execute(data)
+
+		elif data.startswith("COMMIT"):
+			conn.commit()
 
 		else:
 			cur.execute(data)
