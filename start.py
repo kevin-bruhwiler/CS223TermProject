@@ -50,7 +50,7 @@ if __name__ == "__main__":
 			send_msg(server_ports[0], "COMMIT")
 		
 		elif uinput.startswith("KILL_LEADER"):
-			send_msg(server_ports[0], "DIE")
+			send_msg(int(server_ports[0]), "DIE")
 			server_ports.pop(0)
 			
 			

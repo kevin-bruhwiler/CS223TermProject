@@ -8,11 +8,11 @@ import json
 
 print_lock = threading.Lock()
 
+global neighbors
 neighbors = []
 
+global dead
 dead = False
-
-leader = False
 
 my_port = None
 
@@ -26,10 +26,12 @@ def connect_to_server(db_port, password):
 	return conn.cursor()
 
 def listen(c):
+	global leader
+	global neighbors
+	global dead
 	while True:
 		data = c.recv(1024)
 		if not data:
-			print('Bye')
 			print_lock.release()
 			break
 			
@@ -37,18 +39,17 @@ def listen(c):
 		
 		if data.startswith("connect to:"):
 			neighbors = json.loads(data.split(":")[-1])
-			print(neighbors)
-
-		elif leader is True:
+			
 			for neighbor in neighbors:
-				send_msg(neighbor, data)
-			cur.execute(data)
+				if neighbor[1] == "L":
+					start_new_thread(heartbeat, (int(neighbor[0]),))
+			print(neighbors)
 
 		elif data.startswith("COMMIT"):
 			conn.commit()
 			
 		elif data.startswith("HEARTBEATCHECK"):
-			other_port = data.split(":")[-1]
+			other_port = int(data.split(":")[-1])
 			send_msg(other_port, "DEAD" if dead else "ALIVE")
 			
 		elif data.startswith("DIE"):
@@ -63,6 +64,15 @@ def listen(c):
 						neighbor[1] = "L"
 					else:
 						leader = True
+			print(neighbors)
+			
+		elif data.startswith("ALIVE"):
+			pass
+			
+		elif leader is True:
+			for neighbor in neighbors:
+				send_msg(neighbor[0], data)
+			cur.execute(data)
 
 		else:
 			cur.execute(data)
@@ -71,9 +81,11 @@ def listen(c):
 	
 
 def heartbeat(port):
+	global leader
+	print(type(port), port)
 	while True:
 		time.sleep(5)
-		if any([l[1] == "L" for l in neighbors]):
+		if leader:
 			break
 		send_msg(port, "HEARTBEATCHECK:" + str(my_port))
 		
@@ -87,6 +99,7 @@ def send_msg(port, msg):
 
 
 if __name__ == "__main__":
+	global leader
 	cur = connect_to_server(sys.argv[1], sys.argv[3])
 	
 	leader = sys.argv[4] == "L"
@@ -103,7 +116,7 @@ if __name__ == "__main__":
 	while True:
 		c, addr = s.accept()
 		print_lock.acquire()
-		print('Connected to :', addr[0], ':', addr[1])
+		#print('Connected to :', addr[0], ':', addr[1])
  
 		start_new_thread(listen, (c,))
 	s.close()
