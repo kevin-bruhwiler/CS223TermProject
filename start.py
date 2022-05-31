@@ -48,6 +48,11 @@ if __name__ == "__main__":
 			for statement in statements:
 				send_msg(server_ports[0], statement)
 			send_msg(server_ports[0], "COMMIT")
+		
+		elif uinput.startswith("KILL_LEADER"):
+			send_msg(server_ports[0], "DIE")
+			server_ports.pop(0)
+			
 			
 		uinput = input()
 

@@ -1,6 +1,7 @@
 import psycopg2
 import sys
 import socket
+import time
 from _thread import *
 import threading
 import json
@@ -8,6 +9,12 @@ import json
 print_lock = threading.Lock()
 
 neighbors = []
+
+dead = False
+
+leader = False
+
+my_port = None
 
 cur = None
 
@@ -39,11 +46,37 @@ def listen(c):
 
 		elif data.startswith("COMMIT"):
 			conn.commit()
+			
+		elif data.startswith("HEARTBEATCHECK"):
+			other_port = data.split(":")[-1]
+			send_msg(other_port, "DEAD" if dead else "ALIVE")
+			
+		elif data.startswith("DIE"):
+			dead = True
+			
+		elif data.startswith("DEAD"):
+			for neighbor in neighbors:
+				if neighbor[1] == "L":
+					neighbor[1] = "W"
+				else:
+					if int(neighbor[0]) < my_port:
+						neighbor[1] = "L"
+					else:
+						leader = True
 
 		else:
 			cur.execute(data)
 
 	c.close()
+	
+
+def heartbeat(port):
+	while True:
+		time.sleep(5)
+		if any([l[1] == "L" for l in neighbors]):
+			break
+		send_msg(port, "HEARTBEATCHECK:" + str(my_port))
+		
 	
 	
 def send_msg(port, msg):
@@ -60,6 +93,7 @@ if __name__ == "__main__":
 	print("Is leader:", leader)
 	host = ""
 	port = int(sys.argv[2])
+	my_port = port
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.bind((host, port))
 	print("socket binded to port", port)
