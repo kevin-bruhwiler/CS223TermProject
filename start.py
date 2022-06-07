@@ -12,7 +12,7 @@ def start_servers(db_port, server_port, password, leader):
 
 def send_msg(port, msg):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.connect(("localhost", port))
+	sock.connect(("localhost", int(port)))
 	sock.sendall(bytes(msg, encoding='utf8'))
 	sock.close()
 	
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 	#transaction number after SQL statement
 	while uinput != "exit":
 		#execute reads immediately
-		if uinput.startswith("SELECT"):
+		if uinput.startswith("SELECT") or uinput.startswith("CREATE"):
 			send_msg(server_ports[0], uinput[:-4])
 		#buffer writes
 		elif uinput.startswith("UPDATE") or uinput.startswith("INSERT"):
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 			send_msg(server_ports[0], "COMMIT")
 		
 		elif uinput.startswith("KILL_LEADER"):
-			send_msg(int(server_ports[0]), "DIE")
+			send_msg(server_ports[0], "DIE")
 			server_ports.pop(0)
 			
 			

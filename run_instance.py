@@ -18,10 +18,12 @@ my_port = None
 
 cur = None
 
+global conn
 conn = None
 
 def connect_to_server(db_port, password):
-	conn = psycopg2.connect(database="postgres", user="postgres", password=password, host="127.0.0.1", port="5432")
+	global conn
+	conn = psycopg2.connect(database="postgres", user="postgres", password=password, host="127.0.0.1", port=db_port)
 	print("Database Connected....")
 	return conn.cursor()
 
@@ -29,6 +31,7 @@ def listen(c):
 	global leader
 	global neighbors
 	global dead
+	global conn
 	while True:
 		data = c.recv(1024)
 		if not data:
@@ -47,6 +50,9 @@ def listen(c):
 
 		elif data.startswith("COMMIT"):
 			conn.commit()
+			if leader:
+				for neighbor in neighbors:
+					send_msg(neighbor[0], data)
 			
 		elif data.startswith("HEARTBEATCHECK"):
 			other_port = int(data.split(":")[-1])
@@ -68,6 +74,7 @@ def listen(c):
 			
 		elif data.startswith("ALIVE"):
 			pass
+			
 			
 		elif leader is True:
 			for neighbor in neighbors:
@@ -93,7 +100,7 @@ def heartbeat(port):
 	
 def send_msg(port, msg):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.connect(("localhost", port))
+	sock.connect(("localhost", int(port)))
 	sock.sendall(bytes(msg, encoding='utf8'))
 	sock.close()
 
