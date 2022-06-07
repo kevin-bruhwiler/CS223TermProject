@@ -111,10 +111,11 @@ if __name__ == "__main__":
 	
 	leader = sys.argv[4] == "L"
 	print("Is leader:", leader)
-	host = ""
+	#host = ""
 	port = int(sys.argv[2])
 	my_port = port
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	host = socket.gethostname()
 	s.bind((host, port))
 	print("socket binded to port", port)
 	s.listen(4)
