@@ -12,7 +12,7 @@ def start_servers(db_port, server_port, password, leader):
 
 def send_msg(port, msg):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.connect(("localhost", port))
+	sock.connect(("localhost", int(port)))
 	sock.sendall(bytes(msg, encoding='utf8'))
 	sock.close()
 	
@@ -25,14 +25,17 @@ if __name__ == "__main__":
 	for i, (db_port, server_port, leader) in enumerate(zip(db_ports, server_ports, leaders)):
 		start_servers(db_port, server_port, password, leader)
 		time.sleep(2)
-		send_msg(int(server_port), "connect to:" + json.dumps(list(zip(server_ports[:i] + server_ports[i+1:], leaders[:i] + leaders[i+1:]))))
+		print(server_port)
+		print("connect to:" + json.dumps(list(zip(server_ports[:i] + server_ports[i+1:], leaders[:i] + leaders[i+1:]))))
+
+		send_msg(server_port, "connect to:" + json.dumps(list(zip(server_ports[:i] + server_ports[i+1:], leaders[:i] + leaders[i+1:]))))
 
 	uinput = input()
 	#example input: "SELECT vendor_id, vendor_name FROM vendors ORDER BY vendor_name;048"
 	#transaction number after SQL statement
 	while uinput != "exit":
 		#execute reads immediately
-		if uinput.startswith("SELECT"):
+		if uinput.startswith("SELECT") or uinput.startswith("CREATE"):
 			send_msg(server_ports[0], uinput[:-4])
 		#buffer writes
 		elif uinput.startswith("UPDATE") or uinput.startswith("INSERT"):

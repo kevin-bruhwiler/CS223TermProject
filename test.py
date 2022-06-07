@@ -232,7 +232,33 @@ def get_vendors():
         if conn is not None:
             conn.close()
 
+def create_db():
+    # connection establishment
+    conn = psycopg2.connect(
+        database="postgres",
+        user='postgres',
+        password='G3n3r5lK3n0b!',
+        host='192.168.56.1',
+        port='5433'
+    )
+
+    conn.autocommit = True
+
+    # Creating a cursor object
+    cursor = conn.cursor()
+
+    # query to create a database
+    sql = ''' CREATE database products ''';
+
+    # executing above query
+    cursor.execute(sql)
+    print("Database has been created successfully !!");
+
+    # Closing the connection
+    conn.close()
+
 if __name__ == '__main__':
+    create_db()
     #connect()
     #create_tables()
     # insert one vendor
