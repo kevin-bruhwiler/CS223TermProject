@@ -21,6 +21,8 @@ cur = None
 global conn
 conn = None
 
+client = 55555
+
 def connect_to_server(db_port, password):
 	global conn
 	conn = psycopg2.connect(database="postgres", user="postgres", password=password, host="127.0.0.1", port=db_port)
@@ -53,6 +55,7 @@ def listen(c):
 			if leader:
 				for neighbor in neighbors:
 					send_msg(neighbor[0], data)
+			send_msg(client, "COMMITTED")
 			
 		elif data.startswith("HEARTBEATCHECK"):
 			other_port = int(data.split(":")[-1])
@@ -80,6 +83,12 @@ def listen(c):
 			for neighbor in neighbors:
 				send_msg(neighbor[0], data)
 			cur.execute(data)
+			
+			if data.startswith("SELECT"):
+				row = cur.fetchone()
+				while row is not None:
+					send_msg(client, row)
+					row = cur.fetchone()
 
 		else:
 			cur.execute(data)
@@ -111,7 +120,6 @@ if __name__ == "__main__":
 	
 	leader = sys.argv[4] == "L"
 	print("Is leader:", leader)
-	#host = ""
 	port = int(sys.argv[2])
 	my_port = port
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

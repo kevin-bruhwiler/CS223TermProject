@@ -3,8 +3,25 @@ import sys
 import time
 import socket
 import json
+from _thread import *
+import threading
+
+print_lock = threading.Lock()
 
 write_buffer = {}
+my_port = 55555
+
+def listen(c):
+	while True:
+		data = c.recv(1024)
+		if not data:
+			print_lock.release()
+			break
+
+		data = data.decode("utf-8")
+		if not data.startswith("COMMITTED"):
+			print(data)
+
 
 def start_servers(db_port, server_port, password, leader):
 	subprocess.Popen(["python", "run_instance.py", db_port, server_port, password, leader])
@@ -18,6 +35,12 @@ def send_msg(port, msg):
 	
 	
 if __name__ == "__main__":
+
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	host = socket.gethostname()
+	s.bind((host, my_port))
+	s.listen(4)
+
 	db_ports = ["5432", "5433", "5434"]
 	server_ports = ["12345", "12346",  "12347"]
 	leaders = ["L", "W", "W"]
@@ -34,6 +57,12 @@ if __name__ == "__main__":
 	#example input: "SELECT vendor_id, vendor_name FROM vendors ORDER BY vendor_name;048"
 	#transaction number after SQL statement
 	while uinput != "exit":
+
+		c, addr = s.accept()
+		print_lock.acquire()
+
+		start_new_thread(listen, (c,))
+
 		#execute reads immediately
 		if uinput.startswith("SELECT") or uinput.startswith("CREATE"):
 			send_msg(server_ports[0], uinput[:-4])
@@ -55,7 +84,6 @@ if __name__ == "__main__":
 		elif uinput.startswith("KILL_LEADER"):
 			send_msg(server_ports[0], "DIE")
 			server_ports.pop(0)
-			
 			
 		uinput = input()
 
