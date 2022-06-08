@@ -87,7 +87,7 @@ def listen(c):
 			if data.startswith("SELECT"):
 				row = cur.fetchone()
 				while row is not None:
-					send_msg(client, row)
+					send_msg(client, str(row))
 					row = cur.fetchone()
 
 		else:
@@ -98,7 +98,6 @@ def listen(c):
 
 def heartbeat(port):
 	global leader
-	print(type(port), port)
 	while True:
 		time.sleep(5)
 		if leader:
@@ -123,7 +122,7 @@ if __name__ == "__main__":
 	port = int(sys.argv[2])
 	my_port = port
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	host = socket.gethostname()
+	host = "" #socket.gethostname()
 	s.bind((host, port))
 	print("socket binded to port", port)
 	s.listen(4)

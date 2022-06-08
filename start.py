@@ -11,16 +11,25 @@ print_lock = threading.Lock()
 write_buffer = {}
 my_port = 55555
 
-def listen(c):
+def listen():
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	host = ''
+	s.bind((host, my_port))
+	s.listen(4)
+	
 	while True:
-		data = c.recv(1024)
-		if not data:
-			print_lock.release()
-			break
+		c, addr = s.accept()
+		print_lock.acquire()
+		
+		while True:
+			data = c.recv(1024)
+			if not data:
+				print_lock.release()
+				break
 
-		data = data.decode("utf-8")
-		if not data.startswith("COMMITTED"):
-			print(data)
+			data = data.decode("utf-8")
+			if not data.startswith("COMMITTED"):
+				print(data)
 
 
 def start_servers(db_port, server_port, password, leader):
@@ -35,12 +44,6 @@ def send_msg(port, msg):
 	
 	
 if __name__ == "__main__":
-
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	host = socket.gethostname()
-	s.bind((host, my_port))
-	s.listen(4)
-
 	db_ports = ["5432", "5433", "5434"]
 	server_ports = ["12345", "12346",  "12347"]
 	leaders = ["L", "W", "W"]
@@ -54,14 +57,12 @@ if __name__ == "__main__":
 		send_msg(server_port, "connect to:" + json.dumps(list(zip(server_ports[:i] + server_ports[i+1:], leaders[:i] + leaders[i+1:]))))
 
 	uinput = input()
+	
+	start_new_thread(listen, ())
+	
 	#example input: "SELECT vendor_id, vendor_name FROM vendors ORDER BY vendor_name;048"
 	#transaction number after SQL statement
 	while uinput != "exit":
-
-		c, addr = s.accept()
-		print_lock.acquire()
-
-		start_new_thread(listen, (c,))
 
 		#execute reads immediately
 		if uinput.startswith("SELECT") or uinput.startswith("CREATE"):
