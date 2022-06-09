@@ -81,7 +81,7 @@ if __name__ == "__main__":
 			statements = write_buffer[transaction_id]
 			for statement in statements:
 				send_msg(server_ports[0], statement)
-			send_msg(server_ports[0], "COMMIT")
+			send_msg(server_ports[0], uinput)
 		
 		elif uinput.startswith("KILL_LEADER"):
 			send_msg(server_ports[0], "DIE")
