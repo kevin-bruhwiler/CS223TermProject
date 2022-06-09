@@ -66,14 +66,15 @@ if __name__ == "__main__":
 
 		#execute reads immediately
 		if uinput.startswith("SELECT") or uinput.startswith("CREATE"):
-			send_msg(server_ports[0], uinput[:-4])
+			transaction_id = uinput[-3:]
+			send_msg(server_ports[0], uinput)
 		#buffer writes
 		elif uinput.startswith("UPDATE") or uinput.startswith("INSERT"):
 			transaction_id = uinput[-3:]
 			if transaction_id in write_buffer:
-				write_buffer[transaction_id].append(uinput[:-4])
+				write_buffer[transaction_id].append(uinput)
 			else:
-				write_buffer[transaction_id] = list([uinput[:-4]])
+				write_buffer[transaction_id] = list([uinput])
 		#commit when commit message comes
 		elif uinput.startswith("COMMIT"):
 			transaction_id = uinput[-3:]

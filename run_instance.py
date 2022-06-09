@@ -4,6 +4,7 @@ import socket
 import time
 from _thread import *
 import threading
+from collections import defaultdict
 import json
 
 print_lock = threading.Lock()
@@ -22,6 +23,9 @@ global conn
 conn = None
 
 client = 55555
+
+writes = {}
+transactions = defaultdict(set)
 
 def connect_to_server(db_port, password):
 	global conn
@@ -51,6 +55,12 @@ def listen(c):
 			print(neighbors)
 
 		elif data.startswith("COMMIT"):
+			transaction_id = data[-3:]
+			for data_item, timestamp in transactions[transaction_id]:
+				if writes[data_item] > timestamp:
+					send_msg(client, "ABORT")
+					break
+			
 			conn.commit()
 			if leader:
 				for neighbor in neighbors:
@@ -80,18 +90,26 @@ def listen(c):
 			
 			
 		elif leader is True:
+			transaction_id = data[-3:]
 			for neighbor in neighbors:
 				send_msg(neighbor[0], data)
-			cur.execute(data)
+			cur.execute(data[:-4])
+			
+			data_item = data.split(" ")[1]
+			curr_time = time.time()
+			transactions[transaction_id].add((data_item, curr_time))
 			
 			if data.startswith("SELECT"):
 				row = cur.fetchone()
 				while row is not None:
 					send_msg(client, str(row))
 					row = cur.fetchone()
+			else:
+				writes[data_item] = curr_time
+				
 
 		else:
-			cur.execute(data)
+			cur.execute(data[:-4])
 
 	c.close()
 	
