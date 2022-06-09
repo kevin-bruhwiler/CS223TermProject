@@ -29,6 +29,12 @@ global transactions
 writes = {}
 transactions = defaultdict(list)
 
+global readonlies
+readonlies = set()
+
+global snapshot
+snapshot = defaultdict(list)
+
 def connect_to_server(db_port, password):
 	global conn
 	conn = psycopg2.connect(database="postgres", user="postgres", password=password, host="127.0.0.1", port=db_port)
@@ -42,6 +48,8 @@ def listen(c):
 	global conn
 	global writes
 	global transactions
+	global readonlies
+	global snapshot
 	while True:
 		data = c.recv(1024)
 		if not data:
@@ -60,6 +68,9 @@ def listen(c):
 
 		elif data.startswith("COMMIT"):
 			transaction_id = data[-3:]
+			
+			readonlies.discard(transaction_id)
+			
 			for data_item, timestamp in transactions[transaction_id]:
 				if data_item in writes and writes[data_item] > timestamp:
 					send_msg(client, "ABORT")
@@ -77,6 +88,9 @@ def listen(c):
 			
 		elif data.startswith("DIE"):
 			dead = True
+			
+		elif data.startswith("READONLY"):
+			readonlies.add(data.split(";")[-1])
 			
 		elif data.startswith("DEAD"):
 			for neighbor in neighbors:
@@ -100,26 +114,33 @@ def listen(c):
 			
 		elif leader is True:
 			transaction_id = data[-3:]
-			for neighbor in neighbors:
-				send_msg(neighbor[0], data)
-			cur.execute(data[:-4])
 			
 			data_item = data.split(" ")[1]
 			curr_time = time.time()
 			transactions[transaction_id].append((data_item, curr_time))
 			
-			if data.startswith("SELECT"):
+			for neighbor in neighbors:
+				send_msg(neighbor[0], data)
+			cur.execute(data[:-4])
+			
+			if data.startswith("SELECT") and transaction_id not in readonlies:
 				row = cur.fetchone()
 				while row is not None:
 					send_msg(client, str(row))
+					snapshot[data_item].append(row)
 					row = cur.fetchone()
+					
+			elif data.startswith("SELECT") and transaction_id in readonlies and data_item in snapshot:
+				for row in snapshot[data_item]
+					send_msg(client, str(row))
 			else:
 				writes[data_item] = curr_time
 				
 			for neighbor in neighbors:
 				send_msg(neighbor[0], "LOGS " + json.dumps((transactions, writes)))
 				
-
+			if len(readonlies) == 0:
+				snapshot.clear()
 		else:
 			cur.execute(data[:-4])
 

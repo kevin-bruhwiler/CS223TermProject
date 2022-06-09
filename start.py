@@ -82,6 +82,10 @@ if __name__ == "__main__":
 			for statement in statements:
 				send_msg(server_ports[0], statement)
 			send_msg(server_ports[0], uinput)
+			
+		elif uninput.startswith("READONLY"):
+			transaction_id = uinput[-3:]
+			send_msg(server_ports[0], uninput)
 		
 		elif uinput.startswith("KILL_LEADER"):
 			send_msg(server_ports[0], "DIE")
